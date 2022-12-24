@@ -45,7 +45,7 @@ You can easily invoke it with:
 If you need to invoke a task inside the included build with:
 
 ```
-./gradlew -p plugin-build <task-name>
+./gradlew -p plugin-build makeChangeLog
 ```
 
 

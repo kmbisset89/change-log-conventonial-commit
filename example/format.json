@@ -1,0 +1,80 @@
+{
+    "title" :{
+        "attr" : "H1",
+        "text" : "Change Log",
+        "breakAfter" : "horizontalRule"
+    },
+    "introduction" :{
+        "attr" : "bold",
+        "breakAfter" : "newLine"
+    },
+    "eachVersion" : {
+        "tag" : {
+            "attr" : "H2",
+            "breakAfter" : "newLine"
+        },
+        "feat" : {
+            "title" : {
+                "attr" : "H3 ",
+                "text" : "Features Added",
+                "breakAfter" : "newLine"
+            },
+            "each" : {
+                "description" : {
+                    "attr" : "bold",
+                    "breakAfter" : "newLine"
+                },
+                "body": {
+                    "attr" :"para",
+                    "breakAfter" : "newLine"
+                },
+                "footer": {
+                    "attr" : "para",
+                    "breakAfter" : "newLine"
+                }
+            }
+        },
+        "fix" : {
+            "title" : {
+                "attr" : "H3 ",
+                "text" : "Bugs Addressed",
+                "breakAfter" : "newLine"
+            },
+            "each" : {
+                "description" : {
+                    "attr" : "bold",
+                    "breakAfter" : "newLine"
+                },
+                "body": {
+                    "attr" :"para",
+                    "breakAfter" : "newLine"
+                },
+                "footer": {
+                    "attr" : "para",
+                    "breakAfter" : "newLine"
+                }
+            }
+        },
+        "change" : {
+            "title" : {
+                "attr" : "H3 ",
+                "text" : "Existing Feature Modifications",
+                "breakAfter" : "newLine"
+            },
+            "each" : {
+                "description" : {
+                    "attr" : "bold",
+                    "breakAfter" : "newLine"
+                },
+                "body": {
+                    "attr" :"para",
+                    "breakAfter" : "newLine"
+                },
+                "footer": {
+                    "attr" : "para",
+                    "breakAfter" : "newLine"
+                }
+            }
+        }
+    }
+}

@@ -25,7 +25,7 @@ gradleEnterprise {
     }
 }
 
-rootProject.name = "kotlin-gradle-plugin-template"
+rootProject.name = "com-bisset-changelog"
 
 include(":example")
 includeBuild("plugin-build")

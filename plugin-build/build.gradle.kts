@@ -8,9 +8,18 @@ plugins {
     alias(libs.plugins.versionCheck)
 }
 
+buildscript{
+    repositories {
+        mavenCentral()
+    }
+}
+
 allprojects {
     group = property("GROUP").toString()
     version = property("VERSION").toString()
+    repositories {
+        mavenCentral()
+    }
 
     apply {
         plugin(rootProject.libs.plugins.detekt.get().pluginId)
