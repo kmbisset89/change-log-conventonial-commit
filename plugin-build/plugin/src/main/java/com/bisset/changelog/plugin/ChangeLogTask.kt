@@ -37,7 +37,8 @@ abstract class ChangeLogTask : DefaultTask() {
     abstract val regexForSemVerTag: Property<String>
 
     @get:Input
-    @get:Option(option = "jsonChangeLogFormatFilePath", description = "The path to the JSON file that contains the formatting")
+    @get:Option(option = "jsonChangeLogFormatFilePath",
+        description = "The path to the JSON file that contains the formatting")
     @get:Optional
     abstract val jsonChangeLogFormatFile: Property<String>
 
@@ -125,40 +126,40 @@ abstract class ChangeLogTask : DefaultTask() {
         commit: RevCommit?,
         mapOfCommitToTags: Map<Commit, Set<Tag>>
     ): ConventionalCommit? {
-        return commit?.let { commit ->
+        return commit?.let { c ->
             mapOfCommitToTags[Commit(commit.name)]?.let { tag ->
                 when {
-                    commit.fullMessage.startsWith("feat") -> {
-                        val brokenMessage = breakApartMessage(commit.fullMessage.lines())
+                    c.fullMessage.startsWith("feat") -> {
+                        val brokenMessage = breakApartMessage(c.fullMessage.lines())
                         ConventionalCommit.Feature(
                             tags = tag.map { it.tag }.toSet(),
                             description = brokenMessage.first,
                             body = brokenMessage.second,
                             footers = brokenMessage.third,
-                            timeOfCommit = commit.commitTime
+                            timeOfCommit = c.commitTime
                         )
                     }
 
-                    commit.fullMessage.startsWith("fix") -> {
-                        val brokenMessage = breakApartMessage(commit.fullMessage.lines())
+                    c.fullMessage.startsWith("fix") -> {
+                        val brokenMessage = breakApartMessage(c.fullMessage.lines())
                         ConventionalCommit.Fix(
                             tags = tag.map { it.tag }.toSet(),
                             description = brokenMessage.first,
                             body = brokenMessage.second,
                             footers = brokenMessage.third,
-                            timeOfCommit = commit.commitTime
+                            timeOfCommit = c.commitTime
 
                         )
                     }
 
-                    commit.fullMessage.startsWith("change") -> {
-                        val brokenMessage = breakApartMessage(commit.fullMessage.lines())
+                    c.fullMessage.startsWith("change") -> {
+                        val brokenMessage = breakApartMessage(c.fullMessage.lines())
                         ConventionalCommit.Changes(
                             tags = tag.map { it.tag }.toSet(),
                             description = brokenMessage.first,
                             body = brokenMessage.second,
                             footers = brokenMessage.third,
-                            timeOfCommit = commit.commitTime
+                            timeOfCommit = c.commitTime
                         )
                     }
 
