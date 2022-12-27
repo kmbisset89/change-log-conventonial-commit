@@ -1,4 +1,4 @@
-package com.bisset.changelog.plugin
+package io.github.kmbisset89.plugin
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project

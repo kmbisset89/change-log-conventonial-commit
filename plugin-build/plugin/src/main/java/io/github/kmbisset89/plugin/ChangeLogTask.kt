@@ -1,11 +1,9 @@
-package com.bisset.changelog.plugin
+package io.github.kmbisset89.plugin
 
-import net.steppschuh.markdowngenerator.MarkdownBuilder
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.internal.storage.file.FileRepository
-import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.revwalk.RevCommit
-import org.eclipse.jgit.revwalk.RevWalk
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
@@ -29,8 +27,7 @@ abstract class ChangeLogTask : DefaultTask() {
     }
 
     private val defaultJson =
-        "{\"title\":{\"attr\":[\"H1\"]},\"break\":\"horizontalRule\",\"introduction\":{\"attr\":[\"Top Level Heading\"]},\"break1\":\"horizontalRule\",\"eachVersion\":{\"tag\":{\"attr\":[\"H2\"]},\"break1\":\"newLine\",\"feat\":{\"title\":\"Added Feature\",\"attr\":[\"H3\"],\"eachFeature\":{\"description\":{\"attr\":[\"bold\"]},\"break\":\"newLine\",\"body\":{\"attr\":[\"para\"]},\"break1\":\"newLine\",\"footer\":{\"attr\":[\"para\"]}}},\"break2\":\"newLine\",\"fix\":{\"title\":\"Fixed Bugs\",\"attr\":[\"H3\"],\"eachFix\":{\"description\":{\"attr\":[\"bold\"]},\"break1\":\"newLine\",\"body\":{\"attr\":[\"para\"]},\"break2\":\"newLine\",\"footer\":{\"attr\":[\"para\"]}}},\"break3\":\"newLine\",\"change\":{\"title\":\"Changed Functionality\",\"attr\":[\"H3\"],\"eachChange\":{\"description\":{\"attr\":[\"bold\"]},\"break1\":\"newLine\",\"body\":{\"attr\":[\"para\"]},\"break2\":\"newLine\",\"footer\":{\"attr\":[\"para\"]}}},\"break4\":\"newLine\"}}"
-
+        "{\"title\":{\"attr\":\"H1\",\"text\":\"Change Log\",\"breakAfter\":\"horizontalRule\"},\"introduction\":{\"attr\":\"bold\",\"breakAfter\":\"newLine\"},\"eachVersion\":{\"tag\":{\"attr\":\"H2\",\"breakAfter\":\"newLine\"},\"feat\":{\"title\":{\"attr\":\"H3\",\"text\":\"Features Added\",\"breakAfter\":\"newLine\"},\"each\":{\"description\":{\"attr\":\"bold\",\"breakAfter\":\"newLine\"},\"body\":{\"attr\":\"bullet\",\"breakAfter\":\"newLine\"},\"footer\":{\"attr\":\"para\",\"breakAfter\":\"newLine\"}}},\"fix\":{\"title\":{\"attr\":\"H3\",\"text\":\"Bugs Addressed\",\"breakAfter\":\"newLine\"},\"each\":{\"description\":{\"attr\":\"bold\",\"breakAfter\":\"newLine\"},\"body\":{\"attr\":\"bullet\",\"breakAfter\":\"newLine\"},\"footer\":{\"attr\":\"para\",\"breakAfter\":\"newLine\"}}},\"change\":{\"title\":{\"attr\":\"H3\",\"text\":\"Existing Feature Modifications\",\"breakAfter\":\"newLine\"},\"each\":{\"description\":{\"attr\":\"bold\",\"breakAfter\":\"newLine\"},\"body\":{\"attr\":\"bullet\",\"breakAfter\":\"newLine\"},\"footer\":{\"attr\":\"para\",\"breakAfter\":\"newLine\"}}}}}"
     @get:Input
     @get:Option(option = "regexForSemVerTag", description = "Regex to find commits between tags")
     @get:Optional
@@ -61,23 +58,22 @@ abstract class ChangeLogTask : DefaultTask() {
         var json = JSONObject(defaultJson)
 
         jsonChangeLogFormatFile.orNull?.let {
-            val bufferedReader: BufferedReader = File("example.txt").bufferedReader()
-            val inputString = bufferedReader.use { it.readText() }
+            val bufferedReader: BufferedReader = File(it).bufferedReader()
+            val inputString = bufferedReader.use { text -> text.readText() }
             json = JSONObject(inputString)
         }
-
 
         val gitRepo = FileRepository(gitFilePath.orNull ?: project.path)
         val git = Git(gitRepo)
         val branchId = gitRepo.resolve(mainBranch.get())
-
-        val mapOfCommitToTags = HashMap<Commit, MutableSet<Tag>>()
-
-        git.tagList().call().forEach {
+        val mapOfCommitToTags = LinkedHashMap<Commit, MutableSet<Tag>>()
+        gitRepo.refDatabase.getRefsByPrefix(Constants.R_TAGS).forEach {
+            val peeledRef = gitRepo.peel(it)
             val shortTag = it.name.substring(10, it.name.length)
-            val tags = mapOfCommitToTags[Commit(it.objectId.name)] ?: HashSet()
+            val commit = peeledRef.peeledObjectId?.name ?: peeledRef.objectId.name
+            val tags = mapOfCommitToTags[Commit(commit)] ?: HashSet()
             tags.add(Tag(shortTag))
-            mapOfCommitToTags[Commit(it.objectId.name)]  = tags
+            mapOfCommitToTags[Commit(commit)] = tags
         }
 
         val listOfConventionalCommits = git.log().add(branchId).call().mapNotNull {
@@ -127,24 +123,25 @@ abstract class ChangeLogTask : DefaultTask() {
         mapOfCommitToTags: Map<Commit, Set<Tag>>
     ): ConventionalCommit? {
         return commit?.let { c ->
-            mapOfCommitToTags[Commit(commit.name)]?.let { tag ->
+            mapOfCommitToTags[Commit(c.name)]?.let { tag ->
+                val fullMessage = c.fullMessage
                 when {
-                    c.fullMessage.startsWith("feat") -> {
+                    fullMessage.startsWith("feat") -> {
                         val brokenMessage = breakApartMessage(c.fullMessage.lines())
                         ConventionalCommit.Feature(
                             tags = tag.map { it.tag }.toSet(),
-                            description = brokenMessage.first,
+                            description = brokenMessage.first.trim(),
                             body = brokenMessage.second,
                             footers = brokenMessage.third,
                             timeOfCommit = c.commitTime
                         )
                     }
 
-                    c.fullMessage.startsWith("fix") -> {
+                    fullMessage.startsWith("fix") -> {
                         val brokenMessage = breakApartMessage(c.fullMessage.lines())
                         ConventionalCommit.Fix(
                             tags = tag.map { it.tag }.toSet(),
-                            description = brokenMessage.first,
+                            description = brokenMessage.first.trim(),
                             body = brokenMessage.second,
                             footers = brokenMessage.third,
                             timeOfCommit = c.commitTime
@@ -152,11 +149,11 @@ abstract class ChangeLogTask : DefaultTask() {
                         )
                     }
 
-                    c.fullMessage.startsWith("change") -> {
+                    fullMessage.startsWith("change") -> {
                         val brokenMessage = breakApartMessage(c.fullMessage.lines())
                         ConventionalCommit.Changes(
                             tags = tag.map { it.tag }.toSet(),
-                            description = brokenMessage.first,
+                            description = brokenMessage.first.trim(),
                             body = brokenMessage.second,
                             footers = brokenMessage.third,
                             timeOfCommit = c.commitTime

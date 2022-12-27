@@ -1,9 +1,9 @@
-package com.bisset.changelog.plugin
+package io.github.kmbisset89.plugin
 
+import net.steppschuh.markdowngenerator.list.UnorderedList
 import net.steppschuh.markdowngenerator.rule.HorizontalRule
 import net.steppschuh.markdowngenerator.text.emphasis.BoldText
 import net.steppschuh.markdowngenerator.text.heading.Heading
-import org.json.JSONException
 import org.json.JSONObject
 
 private const val DESCRIPTION = "description"
@@ -21,6 +21,7 @@ class MarkDownMarkerFactory(
         private const val HEADING_LEVEL_2 = "H2"
         private const val HEADING_LEVEL_3 = "H3"
         private const val BOLD = "bold"
+        private const val BULLET = "bullet"
         private const val PARAGRAPH = "para"
         private const val NEW_LINE = "newLine"
         private const val HORIZONTAL_RULE = "horizontalRule"
@@ -75,6 +76,8 @@ class MarkDownMarkerFactory(
 
 
                 handleConventionalCommitInfo(eachCommitJson, featureList, bugfixList, changeList)
+                inputText("", this, NEW_LINE)
+                inputText("", this, HORIZONTAL_RULE)
             }
         }
     }
@@ -96,6 +99,8 @@ class MarkDownMarkerFactory(
             }
 
             handleConventionalCommitInfo(eachCommitJson, featureList, bugfixList, changeList)
+            inputText("", this, NEW_LINE)
+            inputText("", this, HORIZONTAL_RULE)
         }
     }
 
@@ -181,7 +186,9 @@ class MarkDownMarkerFactory(
                     cc.body?.let { bodyText ->
                         val attr = bodyObj.optString(ATTR)
                         val breakAfter = bodyObj.optString(BREAK_AFTER)
-                        inputText(bodyText, this, attr)
+                        if(bodyText.isNotEmpty()) {
+                            inputText(bodyText, this, attr)
+                        }
                         breakAfter?.let { type ->
                             inputText("", this, type)
                         }
@@ -241,15 +248,15 @@ class MarkDownMarkerFactory(
     private fun inputText(string: String, builder: StringBuilder, attr: String?) {
         when (attr) {
             HEADING_LEVEL_1 -> {
-                builder.append(Heading(string, 1))
+                builder.appendLine(Heading(string, 1))
             }
 
             HEADING_LEVEL_2 -> {
-                builder.append(Heading(string, 2))
+                builder.appendLine(Heading(string, 2))
             }
 
             HEADING_LEVEL_3 -> {
-                builder.append(Heading(string, 3))
+                builder.appendLine(Heading(string, 3))
             }
 
             HORIZONTAL_RULE -> {
@@ -261,11 +268,14 @@ class MarkDownMarkerFactory(
             }
 
             BOLD -> {
-                builder.append(BoldText(string))
+                builder.appendLine(BoldText(string))
+            }
+            BULLET -> {
+                builder.appendLine(UnorderedList(listOf(string)))
             }
 
             else -> {
-                builder.append(string)
+                builder.appendLine(string)
             }
         }
     }
