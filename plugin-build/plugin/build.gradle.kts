@@ -8,7 +8,7 @@ plugins {
     alias(libs.plugins.pluginPublish)
 }
 
-group = "com.bisset.changelog"
+group = "io.github.kmbisset89.changelog"
 dependencies {
     implementation(kotlin("stdlib"))
     implementation(gradleApi())

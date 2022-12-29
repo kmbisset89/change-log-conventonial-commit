@@ -1,4 +1,4 @@
-package io.github.kmbisset89.plugin
+package io.github.kmbisset89.changelog.plugin
 
 import net.steppschuh.markdowngenerator.list.UnorderedList
 import net.steppschuh.markdowngenerator.rule.HorizontalRule

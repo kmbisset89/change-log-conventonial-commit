@@ -31,6 +31,6 @@ gradleEnterprise {
     }
 }
 
-rootProject.name = ("com.bisset.changelog")
+rootProject.name = ("io.github.kmbisset89.changelog")
 
 include(":plugin")

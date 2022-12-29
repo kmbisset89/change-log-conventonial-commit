@@ -1,4 +1,4 @@
-package io.github.kmbisset89.plugin
+package io.github.kmbisset89.changelog.plugin
 
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
@@ -11,8 +11,6 @@ const val DEFAULT_OUTPUT_FILE = "CHANGELOG.md"
 abstract class ChangeLogExtension @Inject constructor(project: Project) {
 
     private val objects = project.objects
-
-    val mainBranch: Property<String> = objects.property(String::class.java)
 
     val jsonChangeLogFormatFilePath: Property<String> = objects.property(String::class.java)
 

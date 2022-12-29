@@ -1,4 +1,4 @@
-package io.github.kmbisset89.plugin
+package io.github.kmbisset89.changelog.plugin
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project

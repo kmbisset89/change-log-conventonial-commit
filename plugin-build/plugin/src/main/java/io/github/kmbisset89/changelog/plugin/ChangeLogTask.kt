@@ -1,4 +1,4 @@
-package io.github.kmbisset89.plugin
+package io.github.kmbisset89.changelog.plugin
 
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.internal.storage.file.FileRepository
@@ -6,6 +6,7 @@ import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.revwalk.RevCommit
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.logging.Logging
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
@@ -18,6 +19,7 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
 abstract class ChangeLogTask : DefaultTask() {
+    private val logger = Logging.getLogger(ChangeLogTask::class.java)
 
     init {
         description = "Generates a change log based off of Git history and parses conventional commit style."
@@ -28,14 +30,17 @@ abstract class ChangeLogTask : DefaultTask() {
 
     private val defaultJson =
         "{\"title\":{\"attr\":\"H1\",\"text\":\"Change Log\",\"breakAfter\":\"horizontalRule\"},\"introduction\":{\"attr\":\"bold\",\"breakAfter\":\"newLine\"},\"eachVersion\":{\"tag\":{\"attr\":\"H2\",\"breakAfter\":\"newLine\"},\"feat\":{\"title\":{\"attr\":\"H3\",\"text\":\"Features Added\",\"breakAfter\":\"newLine\"},\"each\":{\"description\":{\"attr\":\"bold\",\"breakAfter\":\"newLine\"},\"body\":{\"attr\":\"bullet\",\"breakAfter\":\"newLine\"},\"footer\":{\"attr\":\"para\",\"breakAfter\":\"newLine\"}}},\"fix\":{\"title\":{\"attr\":\"H3\",\"text\":\"Bugs Addressed\",\"breakAfter\":\"newLine\"},\"each\":{\"description\":{\"attr\":\"bold\",\"breakAfter\":\"newLine\"},\"body\":{\"attr\":\"bullet\",\"breakAfter\":\"newLine\"},\"footer\":{\"attr\":\"para\",\"breakAfter\":\"newLine\"}}},\"change\":{\"title\":{\"attr\":\"H3\",\"text\":\"Existing Feature Modifications\",\"breakAfter\":\"newLine\"},\"each\":{\"description\":{\"attr\":\"bold\",\"breakAfter\":\"newLine\"},\"body\":{\"attr\":\"bullet\",\"breakAfter\":\"newLine\"},\"footer\":{\"attr\":\"para\",\"breakAfter\":\"newLine\"}}}}}"
+
     @get:Input
     @get:Option(option = "regexForSemVerTag", description = "Regex to find commits between tags")
     @get:Optional
     abstract val regexForSemVerTag: Property<String>
 
     @get:Input
-    @get:Option(option = "jsonChangeLogFormatFilePath",
-        description = "The path to the JSON file that contains the formatting")
+    @get:Option(
+        option = "jsonChangeLogFormatFilePath",
+        description = "The path to the JSON file that contains the formatting"
+    )
     @get:Optional
     abstract val jsonChangeLogFormatFile: Property<String>
 
@@ -43,10 +48,6 @@ abstract class ChangeLogTask : DefaultTask() {
     @get:Option(option = "gitFilePath", description = "Git File path")
     @get:Optional
     abstract val gitFilePath: Property<String>
-
-    @get:Input
-    @get:Option(option = "mainBranch", description = "Git File path")
-    abstract val mainBranch: Property<String>
 
 
     @get:OutputFile
@@ -63,9 +64,23 @@ abstract class ChangeLogTask : DefaultTask() {
             json = JSONObject(inputString)
         }
 
-        val gitRepo = FileRepository(gitFilePath.orNull ?: project.path)
+        val gitRepo = FileRepository(
+            when{
+                project.hasProperty("git.root") -> {
+                    logger.info("Found git.root property")
+                    project.property("git.root") as String
+                }
+                gitFilePath.orNull != null -> {
+                    logger.info("Found git.root property")
+                    gitFilePath.get()
+                }
+                else -> {
+                    logger.info("Using project path as git root")
+                    project.rootProject.projectDir.path
+                }
+            }
+        )
         val git = Git(gitRepo)
-        val branchId = gitRepo.resolve(mainBranch.get())
         val mapOfCommitToTags = LinkedHashMap<Commit, MutableSet<Tag>>()
         gitRepo.refDatabase.getRefsByPrefix(Constants.R_TAGS).forEach {
             val peeledRef = gitRepo.peel(it)
@@ -76,7 +91,7 @@ abstract class ChangeLogTask : DefaultTask() {
             mapOfCommitToTags[Commit(commit)] = tags
         }
 
-        val listOfConventionalCommits = git.log().add(branchId).call().mapNotNull {
+        val listOfConventionalCommits = git.log().call().mapNotNull {
             createConventionalCommit(it, mapOfCommitToTags)
         }
 

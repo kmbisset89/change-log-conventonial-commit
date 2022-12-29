@@ -1,4 +1,4 @@
-package io.github.kmbisset89.plugin
+package io.github.kmbisset89.changelog.plugin
 
 sealed class ConventionalCommit {
     abstract val tags: Set<String>
