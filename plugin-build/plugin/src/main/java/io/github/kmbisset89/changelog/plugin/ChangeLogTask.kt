@@ -16,6 +16,7 @@ import org.gradle.api.tasks.options.Option
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.File
+import java.util.LinkedList
 import java.util.concurrent.atomic.AtomicBoolean
 
 abstract class ChangeLogTask : DefaultTask() {
@@ -65,15 +66,17 @@ abstract class ChangeLogTask : DefaultTask() {
         }
 
         val gitRepo = FileRepository(
-            when{
+            when {
                 project.hasProperty("git.root") -> {
                     logger.info("Found git.root property")
                     project.property("git.root") as String
                 }
+
                 gitFilePath.orNull != null -> {
                     logger.info("Found git.root property")
                     gitFilePath.get()
                 }
+
                 else -> {
                     logger.info("Using project path as git root")
                     project.rootProject.projectDir.path
@@ -82,6 +85,7 @@ abstract class ChangeLogTask : DefaultTask() {
         )
         val git = Git(gitRepo)
         val mapOfCommitToTags = LinkedHashMap<Commit, MutableSet<Tag>>()
+        val listOfReleaseTags = LinkedList<String>()
         gitRepo.refDatabase.getRefsByPrefix(Constants.R_TAGS).forEach {
             val peeledRef = gitRepo.peel(it)
             val shortTag = it.name.substring(10, it.name.length)
@@ -89,13 +93,17 @@ abstract class ChangeLogTask : DefaultTask() {
             val tags = mapOfCommitToTags[Commit(commit)] ?: HashSet()
             tags.add(Tag(shortTag))
             mapOfCommitToTags[Commit(commit)] = tags
+            if (shortTag.matches(regex)) {
+                listOfReleaseTags.add(shortTag)
+            }
         }
 
         val listOfConventionalCommits = git.log().call().mapNotNull {
             createConventionalCommit(it, mapOfCommitToTags)
         }
 
-        val releaseToCommits: Map<ReleaseType, List<ConventionalCommit>> = makeMap(regex, listOfConventionalCommits)
+        val releaseToCommits: Map<ReleaseType, List<ConventionalCommit>> =
+            makeMap(regex, listOfConventionalCommits, listOfReleaseTags)
 
         outputFile.get().asFile.writeText(
             MarkDownMarkerFactory(
@@ -107,22 +115,36 @@ abstract class ChangeLogTask : DefaultTask() {
 
     private fun makeMap(
         regex: Regex,
-        listOfConventionalCommits: List<ConventionalCommit>
+        listOfConventionalCommits: List<ConventionalCommit>,
+        listOfReleaseTag: List<String>
     ): Map<ReleaseType, List<ConventionalCommit>> {
         val tempMap = LinkedHashMap<ReleaseType, MutableList<ConventionalCommit>>()
         var currentReleaseType: ReleaseType = ReleaseType.Unreleased
 
         listOfConventionalCommits.forEach { cc ->
             val version = cc.tags.find { it.matches(regex) }
-            val releaseType = if (version != null) {
-                val finalRelease = ReleaseType.Released(version)
-                currentReleaseType = finalRelease
-                finalRelease
-            } else {
-                if (currentReleaseType is ReleaseType.Released) {
-                    currentReleaseType
-                } else {
-                    ReleaseType.Unreleased
+
+            val secondaryMatch = listOfReleaseTag.find { rTag -> cc.tags.find { tag -> tag.contains(rTag) } != null }
+
+            val releaseType = when {
+                version != null -> {
+                    val finalRelease = ReleaseType.Released(version)
+                    currentReleaseType = finalRelease
+                    finalRelease
+                }
+
+                secondaryMatch != null -> {
+                    val finalRelease = ReleaseType.Released(secondaryMatch)
+                    currentReleaseType = finalRelease
+                    finalRelease
+                }
+
+                else -> {
+                    if (currentReleaseType is ReleaseType.Released) {
+                        currentReleaseType
+                    } else {
+                        ReleaseType.Unreleased
+                    }
                 }
             }
             val listOfComments = tempMap[releaseType] ?: ArrayList()

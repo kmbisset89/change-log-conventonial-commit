@@ -16,7 +16,6 @@ abstract class ChangeLogPlugin : Plugin<Project> {
             it.jsonChangeLogFormatFile.set(extension.jsonChangeLogFormatFilePath)
             it.regexForSemVerTag.set(extension.regexForSemVerTag)
             it.gitFilePath.set(extension.gitFilePath)
-            it.mainBranch.set(extension.mainBranch)
             it.outputFile.set(extension.outputFile)
         }
     }
