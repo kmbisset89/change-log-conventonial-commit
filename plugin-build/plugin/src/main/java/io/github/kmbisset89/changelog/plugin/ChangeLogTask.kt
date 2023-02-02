@@ -218,7 +218,7 @@ abstract class ChangeLogTask : DefaultTask() {
                 continue
             }
             determineState(stringRef, isAtFooter, isAtBody, brokenMessage, i)
-            if (isAtBody.get()) {
+            if (isAtBody.get() && !isAtFooter.get()) {
                 if (body == null) {
                     body = stringRef
                 } else {
